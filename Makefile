@@ -1,11 +1,11 @@
 PROJECT_NAME     := secure_bootloader_ble_s132_pca10040
-TARGETS          := nrf52810_xxaa_bootloader_s112
+TARGETS          := nrf52832_xxaa_bootloader_s132
 OUTPUT_DIRECTORY := _build
 
 SDK_ROOT := ../nRF5_SDK_17.1.0
 PROJ_DIR := .
 
-$(OUTPUT_DIRECTORY)/nrf52810_xxaa_bootloader_s112.out: \
+$(OUTPUT_DIRECTORY)/nrf52832_xxaa_bootloader_s132.out: \
   LINKER_SCRIPT  := secure_bootloader_gcc_nrf52.ld
 
 # Source files common to all targets
@@ -211,8 +211,8 @@ LDFLAGS += -Wl,--gc-sections
 # use newlib in nano version
 LDFLAGS += --specs=nano.specs
 
-nrf52810_xxaa_bootloader_s112: CFLAGS += -D__HEAP_SIZE=0
-nrf52810_xxaa_bootloader_s112: ASMFLAGS += -D__HEAP_SIZE=0
+nrf52832_xxaa_bootloader_s132: CFLAGS += -D__HEAP_SIZE=0
+nrf52832_xxaa_bootloader_s132: ASMFLAGS += -D__HEAP_SIZE=0
 
 # Add standard libraries at the very end of the linker input, after all objects
 # that may need symbols provided by these libraries.
@@ -222,12 +222,12 @@ LIB_FILES += -lc -lnosys -lm
 .PHONY: default help
 
 # Default target - first one defined
-default: nrf52810_xxaa_bootloader_s112
+default: nrf52832_xxaa_bootloader_s132
 
 # Print all targets that can be built
 help:
 	@echo following targets are available:
-	@echo		nrf52810_xxaa_bootloader_s112
+	@echo		nrf52832_xxaa_bootloader_s132
 	@echo		flash_softdevice
 	@echo		sdk_config - starting external tool for editing sdk_config.h
 	@echo		flash      - flashing binary
