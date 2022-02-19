@@ -146,7 +146,7 @@
  
 
 #ifndef NRF_BL_DFU_ENTER_METHOD_PINRESET
-#define NRF_BL_DFU_ENTER_METHOD_PINRESET 0
+#define NRF_BL_DFU_ENTER_METHOD_PINRESET 1
 #endif
 
 // <q> NRF_BL_DFU_ENTER_METHOD_GPREGRET  - Enter DFU mode when bit 0 is set in the NRF_POWER_GPREGRET register.
@@ -1160,7 +1160,7 @@
 
 // <s> NRF_DFU_BLE_ADV_NAME - Default advertising name.
 #ifndef NRF_DFU_BLE_ADV_NAME
-#define NRF_DFU_BLE_ADV_NAME "DfuTarg"
+#define NRF_DFU_BLE_ADV_NAME "KINDLESTAR_DFU"
 #endif
 
 // <o> NRF_DFU_BLE_ADV_INTERVAL - Advertising interval (in units of 0.625 ms) 
