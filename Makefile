@@ -1,19 +1,77 @@
-PROJECT_NAME     := secure_bootloader_ble_s132_pca10040
-TARGETS          := nrf52832_xxaa_bootloader_s132
+# could be 52832 or 52810
+mcu_opt := 52832
+debug := no # 很容易flash爆炸
+
+chip_name := nrf$(mcu_opt)
+PROJECT_NAME     := secure_bootloader
 OUTPUT_DIRECTORY := _build
+
+ifeq ($(strip $(mcu_opt)), 52810)
+my_softdevice = s112
+else 
+my_softdevice = s132
+endif
+TARGETS          := nrf$(mcu_opt)_xxaa_bootloader_$(my_softdevice)
 
 SDK_ROOT := ../nRF5_SDK_17.1.0
 PROJ_DIR := .
 
+ifeq ($(strip $(mcu_opt)), 52810)
+$(OUTPUT_DIRECTORY)/nrf52810_xxaa_s112.out: \
+  LINKER_SCRIPT  := secure_bootloader_gcc_nrf52810.ld
+else 
 $(OUTPUT_DIRECTORY)/nrf52832_xxaa_bootloader_s132.out: \
   LINKER_SCRIPT  := secure_bootloader_gcc_nrf52.ld
+endif
+
+
+ifeq ($(strip $(debug)), yes)
+SRC_FILES += \
+  $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_rtt.c \
+  $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_serial.c \
+  $(SDK_ROOT)/components/libraries/log/src/nrf_log_default_backends.c \
+  $(SDK_ROOT)/components/libraries/log/src/nrf_log_frontend.c \
+  $(SDK_ROOT)/components/libraries/log/src/nrf_log_str_formatter.c \
+  $(SDK_ROOT)/external/fprintf/nrf_fprintf.c \
+  $(SDK_ROOT)/external/fprintf/nrf_fprintf_format.c \
+  $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT.c \
+  $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c \
+  $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_printf.c \
+  
+INC_FOLDERS += \
+  $(SDK_ROOT)/external/fprintf \
+  $(SDK_ROOT)/external/segger_rtt \
+
+CFLAGS += -DDEBUG_NRF
+CFLAGS += -DNRF_DFU_DEBUG_VERSION
+CFLAGS += -DNRF_LOG_BACKEND_RTT_ENABLED=1
+CFLAGS += -DNRF_LOG_BACKEND_RTT_TEMP_BUFFER_SIZE=64
+CFLAGS += -DNRF_LOG_BACKEND_RTT_TX_RETRY_DELAY_MS=1
+CFLAGS += -DNRF_LOG_BACKEND_RTT_TX_RETRY_CNT=3
+CFLAGS += -DNRF_LOG_BUFSIZE=512
+CFLAGS += -DSEGGER_RTT_CONFIG_BUFFER_SIZE_UP=512
+CFLAGS += -DSEGGER_RTT_CONFIG_MAX_NUM_UP_BUFFERS=2
+CFLAGS += -DSEGGER_RTT_CONFIG_BUFFER_SIZE_DOWN=16
+CFLAGS += -DSEGGER_RTT_CONFIG_MAX_NUM_DOWN_BUFFERS=2
+CFLAGS += -DSEGGER_RTT_CONFIG_DEFAULT_MODE=0
+
+ASMFLAGS += -DDEBUG_NRF
+ASMFLAGS += -DNRF_DFU_DEBUG_VERSION
+ASMFLAGS += -DNRF_LOG_BACKEND_RTT_ENABLED=1
+ASMFLAGS += -DNRF_LOG_BACKEND_RTT_TEMP_BUFFER_SIZE=64
+ASMFLAGS += -DNRF_LOG_BACKEND_RTT_TX_RETRY_DELAY_MS=1
+ASMFLAGS += -DNRF_LOG_BACKEND_RTT_TX_RETRY_CNT=3
+ASMFLAGS += -DNRF_LOG_BUFSIZE=512
+ASMFLAGS += -DSEGGER_RTT_CONFIG_BUFFER_SIZE_UP=512
+ASMFLAGS += -DSEGGER_RTT_CONFIG_MAX_NUM_UP_BUFFERS=2
+ASMFLAGS += -DSEGGER_RTT_CONFIG_BUFFER_SIZE_DOWN=16
+ASMFLAGS += -DSEGGER_RTT_CONFIG_MAX_NUM_DOWN_BUFFERS=2
+ASMFLAGS += -DSEGGER_RTT_CONFIG_DEFAULT_MODE=0
+
+endif
 
 # Source files common to all targets
 SRC_FILES += \
-  $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52.S \
-  $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52.c \
-  $(SDK_ROOT)/components/libraries/log/src/nrf_log_frontend.c \
-  $(SDK_ROOT)/components/libraries/log/src/nrf_log_str_formatter.c \
   $(SDK_ROOT)/components/libraries/util/app_error_weak.c \
   $(SDK_ROOT)/components/libraries/scheduler/app_scheduler.c \
   $(SDK_ROOT)/components/libraries/util/app_util_platform.c \
@@ -23,8 +81,6 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/atomic_fifo/nrf_atfifo.c \
   $(SDK_ROOT)/components/libraries/atomic/nrf_atomic.c \
   $(SDK_ROOT)/components/libraries/balloc/nrf_balloc.c \
-  $(SDK_ROOT)/external/fprintf/nrf_fprintf.c \
-  $(SDK_ROOT)/external/fprintf/nrf_fprintf_format.c \
   $(SDK_ROOT)/components/libraries/fstorage/nrf_fstorage.c \
   $(SDK_ROOT)/components/libraries/fstorage/nrf_fstorage_nvmc.c \
   $(SDK_ROOT)/components/libraries/fstorage/nrf_fstorage_sd.c \
@@ -88,7 +144,6 @@ SRC_FILES += \
 # Include folders common to all targets
 INC_FOLDERS += \
   $(SDK_ROOT)/components/libraries/crypto/backend/micro_ecc \
-  $(SDK_ROOT)/components/softdevice/s132/headers \
   $(SDK_ROOT)/components/libraries/memobj \
   $(SDK_ROOT)/components/libraries/sha256 \
   $(SDK_ROOT)/components/libraries/crc32 \
@@ -103,7 +158,6 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/libraries/atomic \
   $(SDK_ROOT)/integration/nrfx \
   $(SDK_ROOT)/components/libraries/crypto/backend/cc310_bl \
-  $(SDK_ROOT)/components/softdevice/s132/headers/nrf52 \
   $(SDK_ROOT)/components/libraries/log/src \
   $(SDK_ROOT)/components/libraries/bootloader/dfu \
   $(SDK_ROOT)/components/ble/common \
@@ -118,7 +172,6 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/boards \
   $(SDK_ROOT)/components/libraries/crypto/backend/cc310 \
   $(SDK_ROOT)/components/libraries/bootloader \
-  $(SDK_ROOT)/external/fprintf \
   $(SDK_ROOT)/components/libraries/crypto \
   config \
   $(SDK_ROOT)/components/libraries/crypto/backend/optiga \
@@ -152,14 +205,10 @@ CFLAGS += $(OPT)
 CFLAGS += -DBLE_STACK_SUPPORT_REQD
 CFLAGS += -DBOARD_PCA10040
 CFLAGS += -DCONFIG_GPIO_AS_PINRESET
-CFLAGS += -DFLOAT_ABI_HARD
-CFLAGS += -DNRF52
-CFLAGS += -DNRF52832_XXAA
 CFLAGS += -DNRF52_PAN_74
 CFLAGS += -DNRF_DFU_SETTINGS_VERSION=2
 CFLAGS += -DNRF_DFU_SVCI_ENABLED
 CFLAGS += -DNRF_SD_BLE_API_VERSION=7
-CFLAGS += -DS132
 CFLAGS += -DSOFTDEVICE_PRESENT
 CFLAGS += -DSVC_INTERFACE_CALL_AS_NORMAL_FUNCTION
 CFLAGS += -DuECC_ENABLE_VLI_API=0
@@ -170,7 +219,6 @@ CFLAGS += -DuECC_VLI_NATIVE_LITTLE_ENDIAN=1
 CFLAGS += -mcpu=cortex-m4
 CFLAGS += -mthumb -mabi=aapcs
 CFLAGS += -Wall -Werror
-CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 # keep every function in a separate section, this allows linker to discard unused ones
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
 CFLAGS += -fno-builtin -fshort-enums
@@ -181,18 +229,13 @@ CXXFLAGS += $(OPT)
 ASMFLAGS += -g3
 ASMFLAGS += -mcpu=cortex-m4
 ASMFLAGS += -mthumb -mabi=aapcs
-ASMFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 ASMFLAGS += -DBLE_STACK_SUPPORT_REQD
 ASMFLAGS += -DBOARD_PCA10040
 ASMFLAGS += -DCONFIG_GPIO_AS_PINRESET
-ASMFLAGS += -DFLOAT_ABI_HARD
-ASMFLAGS += -DNRF52
-ASMFLAGS += -DNRF52832_XXAA
 ASMFLAGS += -DNRF52_PAN_74
 ASMFLAGS += -DNRF_DFU_SETTINGS_VERSION=2
 ASMFLAGS += -DNRF_DFU_SVCI_ENABLED
 ASMFLAGS += -DNRF_SD_BLE_API_VERSION=7
-ASMFLAGS += -DS132
 ASMFLAGS += -DSOFTDEVICE_PRESENT
 ASMFLAGS += -DSVC_INTERFACE_CALL_AS_NORMAL_FUNCTION
 ASMFLAGS += -DuECC_ENABLE_VLI_API=0
@@ -201,18 +244,65 @@ ASMFLAGS += -DuECC_SQUARE_FUNC=0
 ASMFLAGS += -DuECC_SUPPORT_COMPRESSED_POINT=0
 ASMFLAGS += -DuECC_VLI_NATIVE_LITTLE_ENDIAN=1
 
+#####    810     ######
+ifeq ($(strip $(52810)), yes)
+
+SRC_FILES += \
+  $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52810.S \
+  $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52810.c \
+
+INC_FOLDERS += \
+$(SDK_ROOT)/components/softdevice/s112/headers \
+$(SDK_ROOT)/components/softdevice/s112/headers/nrf52 \
+
+CFLAGS += -DNRF52810_XXAA
+CFLAGS += -DS112
+CFLAGS += -DFLOAT_ABI_SOFT
+CFLAGS += -mfloat-abi=soft
+CFLAGS += -DNRF_DFU_APP_DATA_AREA_SIZE=8192
+
+ASMFLAGS += -DNRF52810_XXAA
+ASMFLAGS += -DS112
+ASMFLAGS += -DFLOAT_ABI_SOFT
+ASMFLAGS += -mfloat-abi=soft
+
+else # 默认832------------------
+INC_FOLDERS += \
+  $(SDK_ROOT)/components/softdevice/s132/headers \
+  $(SDK_ROOT)/components/softdevice/s132/headers/nrf52 \
+
+SRC_FILES += \
+  $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52.S \
+  $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52.c \
+
+CFLAGS += -DNRF52
+CFLAGS += -DNRF52832_XXAA
+CFLAGS += -DS132
+CFLAGS += -DFLOAT_ABI_HARD
+CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
+
+ASMFLAGS += -DNRF52
+ASMFLAGS += -DNRF52832_XXAA
+ASMFLAGS += -DS132
+ASMFLAGS += -DFLOAT_ABI_HARD
+ASMFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
+
+LDFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
+
+endif #832 end
+
 # Linker flags
 LDFLAGS += $(OPT)
 LDFLAGS += -mthumb -mabi=aapcs -L$(SDK_ROOT)/modules/nrfx/mdk -T$(LINKER_SCRIPT)
 LDFLAGS += -mcpu=cortex-m4
-LDFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 # let linker dump unused sections
 LDFLAGS += -Wl,--gc-sections
 # use newlib in nano version
 LDFLAGS += --specs=nano.specs
 
-nrf52832_xxaa_bootloader_s132: CFLAGS += -D__HEAP_SIZE=0
-nrf52832_xxaa_bootloader_s132: ASMFLAGS += -D__HEAP_SIZE=0
+
+$(chip_name)_xxaa_bootloader_$(my_softdevice): CFLAGS += -D__HEAP_SIZE=0
+$(chip_name)_xxaa_bootloader_$(my_softdevice): ASMFLAGS += -D__HEAP_SIZE=0
 
 # Add standard libraries at the very end of the linker input, after all objects
 # that may need symbols provided by these libraries.
@@ -222,12 +312,12 @@ LIB_FILES += -lc -lnosys -lm
 .PHONY: default help
 
 # Default target - first one defined
-default: nrf52832_xxaa_bootloader_s132
+default: $(chip_name)_xxaa_bootloader_$(my_softdevice)
 
 # Print all targets that can be built
 help:
 	@echo following targets are available:
-	@echo		nrf52832_xxaa_bootloader_s132
+	@echo		$(chip_name)_xxaa_bootloader_$(my_softdevice)
 	@echo		flash_softdevice
 	@echo		sdk_config - starting external tool for editing sdk_config.h
 	@echo		flash      - flashing binary
@@ -243,15 +333,15 @@ $(foreach target, $(TARGETS), $(call define_target, $(target)))
 
 # Flash the program
 flash: default
-	@echo Flashing: $(OUTPUT_DIRECTORY)/nrf52832_xxaa_bootloader_s132.hex
-	nrfjprog -f nrf52 --program $(OUTPUT_DIRECTORY)/nrf52832_xxaa_bootloader_s132.hex --sectorerase
+	@echo Flashing: $(OUTPUT_DIRECTORY)/$(chip_name)_xxaa_bootloader_$(my_softdevice).hex
+	nrfjprog -f nrf52 --program $(OUTPUT_DIRECTORY)/$(chip_name)_xxaa_bootloader_$(my_softdevice).hex --sectorerase
 	nrfjprog -f nrf52 --reset
 
 # Flash softdevice
 flash_softdevice:
-	@echo Flashing: s132_nrf52_7.2.0_softdevice.hex
-	nrfjprog -f nrf52 --program $(SDK_ROOT)/components/softdevice/s132/hex/s132_nrf52_7.2.0_softdevice.hex --sectorerase
-	nrfjprog -f nrf52 --reset
+    @echo Flashing: $(my_softdevice)_nrf52_7.2.0_softdevice.hex
+    # nrfjprog -f nrf52 --program $(SDK_ROOT)/components/softdevice/$(my_softdevice)/hex/$(my_softdevice)_nrf52_7.2.0_softdevice.hex --sectorerase
+    # nrfjprog -f nrf52 --reset
 
 erase:
 	nrfjprog -f nrf52 --eraseall
