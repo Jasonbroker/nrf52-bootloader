@@ -1,30 +1,28 @@
 # could be 52832 or 52810
-mcu_opt := 52810
+MCU := 52833
 debug := no
 
-chip_name := nrf$(mcu_opt)
+chip_name := nrf$(MCU)
 PROJECT_NAME     := secure_bootloader
 OUTPUT_DIRECTORY := _build
 
-ifeq ($(strip $(mcu_opt)), 52810)
+ifeq ($(strip $(MCU)), 52810)
 my_softdevice = s112
-else 
+else ifeq ($(strip $(MCU)), 52833)
+my_softdevice = s113
+else ifeq ($(strip $(MCU)), 52832)
 my_softdevice = s132
+else
+$(error should use a right target!)
 endif
-TARGETS          := nrf$(mcu_opt)_xxaa_bootloader_$(my_softdevice)
+
+TARGETS          := nrf$(MCU)_xxaa_bootloader_$(my_softdevice)
 
 SDK_ROOT := ../nRF5_SDK_17.1.0
 PROJ_DIR := .
 
-ifeq ($(strip $(mcu_opt)), 52810)
-
-  $(OUTPUT_DIRECTORY)/nrf52810_xxaa_s112.out: \
-  LINKER_SCRIPT  := secure_bootloader_gcc_nrf52810.ld
-else 
-
-  $(OUTPUT_DIRECTORY)/nrf52832_xxaa_bootloader_s132.out: \
-  LINKER_SCRIPT  := secure_bootloader_gcc_nrf52.ld
-endif
+$(OUTPUT_DIRECTORY)/nrf$(MCU)_xxaa_bootloader_$(my_softdevice).out: \
+LINKER_SCRIPT  := secure_bootloader_gcc_nrf$(MCU).ld
 
 
  ifeq ($(strip $(debug)), yes)
@@ -143,6 +141,22 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/crypto/backend/oberon/oberon_backend_hash.c \
   $(SDK_ROOT)/components/libraries/crypto/backend/oberon/oberon_backend_hmac.c \
 
+ifeq ($(strip $(MCU)), 52810)
+SRC_FILES += \
+  $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52810.S \
+  $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52810.c
+else ifeq ($(strip $(MCU)), 52833)
+SRC_FILES += \
+  $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52833.S \
+  $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52833.c
+else ifeq ($(strip $(MCU)), 52832)
+SRC_FILES += \
+  $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52.S \
+  $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52.c
+else
+$(error should use a target!)
+endif
+
 # Include folders common to all targets
 INC_FOLDERS += \
   $(SDK_ROOT)/components/libraries/crypto/backend/micro_ecc \
@@ -192,13 +206,33 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/libraries/queue \
   $(SDK_ROOT)/components/libraries/ringbuf \
 
+ifeq ($(strip $(MCU)), 52810)
+INC_FOLDERS += \
+  $(SDK_ROOT)/components/softdevice/s112/headers \
+  $(SDK_ROOT)/components/softdevice/s112/headers/nrf52\
+
+else ifeq ($(strip $(MCU)), 52833)
+INC_FOLDERS += \
+  $(SDK_ROOT)/components/softdevice/s113/headers \
+  $(SDK_ROOT)/components/softdevice/s113/headers/nrf52 \
+
+else ifeq ($(strip $(MCU)), 52832)
+
+INC_FOLDERS += \
+  $(SDK_ROOT)/components/softdevice/s132/headers \
+  $(SDK_ROOT)/components/softdevice/s132/headers/nrf52 
+
+else
+$(error should use a target!)
+endif
+
 # Libraries common to all targets
-ifeq ($(strip $(mcu_opt)), 52810)
+ifeq ($(strip $(MCU)), 52810)
 LIB_FILES += \
   $(SDK_ROOT)/external/nrf_oberon/lib/cortex-m4/soft-float/liboberon_3.0.8.a \
   $(SDK_ROOT)/external/micro-ecc/nrf52nf_armgcc/armgcc/micro_ecc_lib_nrf52.a \
 
-else
+else # 832 833 is hard float
 LIB_FILES += \
   $(SDK_ROOT)/external/nrf_oberon/lib/cortex-m4/hard-float/liboberon_3.0.8.a \
   $(SDK_ROOT)/external/micro-ecc/nrf52hf_armgcc/armgcc/micro_ecc_lib_nrf52.a \
@@ -213,7 +247,6 @@ OPT = -Os -g3
 # C flags common to all targets
 CFLAGS += $(OPT)
 CFLAGS += -DBLE_STACK_SUPPORT_REQD
-CFLAGS += -DBOARD_PCA10040
 CFLAGS += -DCONFIG_GPIO_AS_PINRESET
 CFLAGS += -DNRF52_PAN_74
 CFLAGS += -DNRF_DFU_SETTINGS_VERSION=2
@@ -233,6 +266,33 @@ CFLAGS += -Wall -Werror
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
 CFLAGS += -fno-builtin -fshort-enums
 
+ifeq ($(strip $(MCU)), 52810)
+CFLAGS += -DBOARD_PCA10040
+CFLAGS += -DNRF52810_XXAA
+CFLAGS += -DS112
+CFLAGS += -DFLOAT_ABI_SOFT
+CFLAGS += -mfloat-abi=soft
+CFLAGS += -DNRF_DFU_APP_DATA_AREA_SIZE=8192
+
+else ifeq ($(strip $(MCU)), 52833)
+CFLAGS += -DBOARD_PCA10100
+CFLAGS += -DNRF52833_XXAA
+CFLAGS += -DS113
+CFLAGS += -DFLOAT_ABI_HARD
+CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
+
+else ifeq ($(strip $(MCU)), 52832)
+CFLAGS += -DBOARD_PCA10040
+CFLAGS += -DNRF52
+CFLAGS += -DNRF52832_XXAA
+CFLAGS += -DS132
+CFLAGS += -DFLOAT_ABI_HARD
+CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
+
+else
+$(error should use a target!)
+endif
+
 # C++ flags common to all targets
 CXXFLAGS += $(OPT)
 # Assembler flags common to all targets
@@ -240,7 +300,6 @@ ASMFLAGS += -g3
 ASMFLAGS += -mcpu=cortex-m4
 ASMFLAGS += -mthumb -mabi=aapcs
 ASMFLAGS += -DBLE_STACK_SUPPORT_REQD
-ASMFLAGS += -DBOARD_PCA10040
 ASMFLAGS += -DCONFIG_GPIO_AS_PINRESET
 ASMFLAGS += -DNRF52_PAN_74
 ASMFLAGS += -DNRF_DFU_SETTINGS_VERSION=2
@@ -254,45 +313,23 @@ ASMFLAGS += -DuECC_SQUARE_FUNC=0
 ASMFLAGS += -DuECC_SUPPORT_COMPRESSED_POINT=0
 ASMFLAGS += -DuECC_VLI_NATIVE_LITTLE_ENDIAN=1
 
-#####    810     ######
-ifeq ($(strip $(mcu_opt)), 52810)
-
-SRC_FILES += \
-  $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52810.S \
-  $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52810.c \
-
-INC_FOLDERS += \
-  $(SDK_ROOT)/components/softdevice/s112/headers \
-  $(SDK_ROOT)/components/softdevice/s112/headers/nrf52 \
-
-CFLAGS += -DNRF52810_XXAA
-CFLAGS += -DS112
-CFLAGS += -DFLOAT_ABI_SOFT
-CFLAGS += -mfloat-abi=soft
-CFLAGS += -DNRF_DFU_APP_DATA_AREA_SIZE=8192
-
+ifeq ($(strip $(MCU)), 52810)
+ASMFLAGS += -DBOARD_PCA10040
 ASMFLAGS += -DNRF52810_XXAA
 ASMFLAGS += -DS112
 ASMFLAGS += -DFLOAT_ABI_SOFT
 ASMFLAGS += -mfloat-abi=soft
 ASMFLAGS += -DNRF_DFU_APP_DATA_AREA_SIZE=8192
+else ifeq ($(strip $(MCU)), 52833)
+ASMFLAGS += -DBOARD_PCA10100
+ASMFLAGS += -DNRF52833_XXAA
+ASMFLAGS += -DS113
+ASMFLAGS += -DFLOAT_ABI_HARD
+ASMFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 
-else # 默认832------------------
-
-INC_FOLDERS += \
-  $(SDK_ROOT)/components/softdevice/s132/headers \
-  $(SDK_ROOT)/components/softdevice/s132/headers/nrf52 \
-
-SRC_FILES += \
-  $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52.S \
-  $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52.c \
-
-CFLAGS += -DNRF52
-CFLAGS += -DNRF52832_XXAA
-CFLAGS += -DS132
-CFLAGS += -DFLOAT_ABI_HARD
-CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
-
+LDFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
+else ifeq ($(strip $(MCU)), 52832)
+ASMFLAGS += -DBOARD_PCA10040
 ASMFLAGS += -DNRF52
 ASMFLAGS += -DNRF52832_XXAA
 ASMFLAGS += -DS132
@@ -300,8 +337,11 @@ ASMFLAGS += -DFLOAT_ABI_HARD
 ASMFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 
 LDFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
+else
+$(error should use a target!)
+endif
 
-endif #832 end
+
 
 # Linker flags
 LDFLAGS += $(OPT)
