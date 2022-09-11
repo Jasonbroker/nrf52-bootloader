@@ -248,7 +248,6 @@ OPT = -Os -g3
 CFLAGS += $(OPT)
 CFLAGS += -DBLE_STACK_SUPPORT_REQD
 CFLAGS += -DCONFIG_GPIO_AS_PINRESET
-CFLAGS += -DNRF52_PAN_74
 CFLAGS += -DNRF_DFU_SETTINGS_VERSION=2
 CFLAGS += -DNRF_DFU_SVCI_ENABLED
 CFLAGS += -DNRF_SD_BLE_API_VERSION=7
@@ -267,6 +266,7 @@ CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
 CFLAGS += -fno-builtin -fshort-enums
 
 ifeq ($(strip $(MCU)), 52810)
+CFLAGS += -DNRF52_PAN_74
 CFLAGS += -DBOARD_PCA10040
 CFLAGS += -DNRF52810_XXAA
 CFLAGS += -DS112
@@ -282,14 +282,15 @@ CFLAGS += -DFLOAT_ABI_HARD
 CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 CFLAGS += -DNRF_DFU_APP_DATA_AREA_SIZE=8192
 # 蓝牙相关
-CFLAGS += -DNRF_SDH_CLOCK_LF_SRC=0
-CFLAGS += -DNRF_SDH_CLOCK_LF_RC_CTIV=16
-CFLAGS += -DNRF_SDH_CLOCK_LF_RC_TEMP_CTIV=2
-CFLAGS += -DNRF_SDH_CLOCK_LF_ACCURACY=1
-CFLAGS += -DNRFX_CLOCK_ENABLED=1
-CFLAGS += -DNRFX_CLOCK_CONFIG_LF_SRC=0
+# CFLAGS += -DNRF_SDH_CLOCK_LF_SRC=0
+# CFLAGS += -DNRF_SDH_CLOCK_LF_RC_CTIV=16
+# CFLAGS += -DNRF_SDH_CLOCK_LF_RC_TEMP_CTIV=2
+# CFLAGS += -DNRF_SDH_CLOCK_LF_ACCURACY=1
+# CFLAGS += -DNRFX_CLOCK_ENABLED=1
+# CFLAGS += -DNRFX_CLOCK_CONFIG_LF_SRC=0
 
 else ifeq ($(strip $(MCU)), 52832)
+CFLAGS += -DNRF52_PAN_74
 CFLAGS += -DBOARD_PCA10040
 CFLAGS += -DNRF52
 CFLAGS += -DNRF52832_XXAA
@@ -309,7 +310,6 @@ ASMFLAGS += -mcpu=cortex-m4
 ASMFLAGS += -mthumb -mabi=aapcs
 ASMFLAGS += -DBLE_STACK_SUPPORT_REQD
 ASMFLAGS += -DCONFIG_GPIO_AS_PINRESET
-ASMFLAGS += -DNRF52_PAN_74
 ASMFLAGS += -DNRF_DFU_SETTINGS_VERSION=2
 ASMFLAGS += -DNRF_DFU_SVCI_ENABLED
 ASMFLAGS += -DNRF_SD_BLE_API_VERSION=7
@@ -322,6 +322,7 @@ ASMFLAGS += -DuECC_SUPPORT_COMPRESSED_POINT=0
 ASMFLAGS += -DuECC_VLI_NATIVE_LITTLE_ENDIAN=1
 
 ifeq ($(strip $(MCU)), 52810)
+ASMFLAGS += -DNRF52_PAN_74
 ASMFLAGS += -DBOARD_PCA10040
 ASMFLAGS += -DNRF52810_XXAA
 ASMFLAGS += -DS112
@@ -336,15 +337,16 @@ ASMFLAGS += -DFLOAT_ABI_HARD
 ASMFLAGS += -DNRF_DFU_APP_DATA_AREA_SIZE=8192
 ASMFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 
-ASMFLAGS += -DNRF_SDH_CLOCK_LF_SRC=0
-ASMFLAGS += -DNRF_SDH_CLOCK_LF_RC_CTIV=16
-ASMFLAGS += -DNRF_SDH_CLOCK_LF_RC_TEMP_CTIV=2
-ASMFLAGS += -DNRF_SDH_CLOCK_LF_ACCURACY=1
-ASMFLAGS += -DNRFX_CLOCK_ENABLED=1
-ASMFLAGS += -DNRFX_CLOCK_CONFIG_LF_SRC=0
+# ASMFLAGS += -DNRF_SDH_CLOCK_LF_SRC=0
+# ASMFLAGS += -DNRF_SDH_CLOCK_LF_RC_CTIV=16
+# ASMFLAGS += -DNRF_SDH_CLOCK_LF_RC_TEMP_CTIV=2
+# ASMFLAGS += -DNRF_SDH_CLOCK_LF_ACCURACY=1
+# ASMFLAGS += -DNRFX_CLOCK_ENABLED=1
+# ASMFLAGS += -DNRFX_CLOCK_CONFIG_LF_SRC=0
 
 LDFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 else ifeq ($(strip $(MCU)), 52832)
+ASMFLAGS += -DNRF52_PAN_74
 ASMFLAGS += -DBOARD_PCA10040
 ASMFLAGS += -DNRF52
 ASMFLAGS += -DNRF52832_XXAA
@@ -368,10 +370,13 @@ LDFLAGS += -Wl,--gc-sections
 # use newlib in nano version
 LDFLAGS += --specs=nano.specs
 
-
+ifeq ($(strip $(MCU)), 52833)
+$(chip_name)_xxaa_bootloader_$(my_softdevice): CFLAGS += -D__HEAP_SIZE=2048
+$(chip_name)_xxaa_bootloader_$(my_softdevice): ASMFLAGS += -D__HEAP_SIZE=2048
+else
 $(chip_name)_xxaa_bootloader_$(my_softdevice): CFLAGS += -D__HEAP_SIZE=0
 $(chip_name)_xxaa_bootloader_$(my_softdevice): ASMFLAGS += -D__HEAP_SIZE=0
-
+endif
 # Add standard libraries at the very end of the linker input, after all objects
 # that may need symbols provided by these libraries.
 LIB_FILES += -lc -lnosys -lm
@@ -402,14 +407,14 @@ $(foreach target, $(TARGETS), $(call define_target, $(target)))
 # Flash the program
 flash: default
 	@echo Flashing: $(OUTPUT_DIRECTORY)/$(chip_name)_xxaa_bootloader_$(my_softdevice).hex
-	nrfjprog -f nrf52 --program $(OUTPUT_DIRECTORY)/$(chip_name)_xxaa_bootloader_$(my_softdevice).hex --sectorerase
+	nrfjprog -f nrf52 --program $(OUTPUT_DIRECTORY)/$(chip_name)_xxaa_bootloader_$(my_softdevice).hex --sectorerase --verify
 	nrfjprog -f nrf52 --reset
 
 # Flash softdevice
 flash_softdevice:
-  @echo Flashing: $(my_softdevice)_nrf52_7.2.0_softdevice.hex
-  # nrfjprog -f nrf52 --program $(SDK_ROOT)/components/softdevice/$(my_softdevice)/hex/$(my_softdevice)_nrf52_7.2.0_softdevice.hex --sectorerase
-  # nrfjprog -f nrf52 --reset
+	@echo Flashing: $(my_softdevice)_nrf52_7.2.0_softdevice.hex
+	nrfjprog -f nrf52 --program $(SDK_ROOT)/components/softdevice/$(my_softdevice)/hex/$(my_softdevice)_nrf52_7.2.0_softdevice.hex --sectorerase --verify
+	nrfjprog -f nrf52 --reset
 
 erase:
 	nrfjprog -f nrf52 --eraseall
